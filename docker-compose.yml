@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  # Jaeger
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    # https://www.jaegertracing.io/docs/1.35/getting-started/
+    ports:
+      - 5775:5775 # depracated, accepts zipkin.thrift
+      - 5778:5778 # servce configs (sampling, etc.)
+      - 6831:6931 # accepts jaeger.thrift (most SDK)
+      - 6832:6832 # accepts jaeger.thrift (Node.js SDK)
+      - 14250:14250 # accepts model.proto
+      - 14268:14268 # jaeger.thrift directly from clients
+      - 16686:16686 # serve frontend UI
+      # #####
+      - 9411:9411 # zipkin compatible endpoint (optional)
+  # prometheus
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      # .yml file example: ./config/prometheus.yml:/etc/config/prometheus.yml
+      - ./config/prometheus.yml:/etc/config/prometheus.yml
+    ports:
+      - 9090:9090
+  # otel-collector-gateway
+  otel-collector-gateway:
+    image: otel/opentelemetry-collector # :latest? or :0.29.0
+    volumes: 
+      # .yml file path: ./config/otel-collector-gateway-config.yml:/etc/otel-collector-gateway-config.yml
+      - ./config/otel-collector-gateway-config.yml:/etc/otel-collector-gateway-config.yml
+    command: ["--config=/etc/otel-collector-gateway-config.yml"] # specifying configuration
+    environment:
+      - ELASTIC_APM_SERVER_ENDPOINT
+      - ELASTIC_APM_SERVER_TOKEN
+    ports:
+      - "1888:1888" # pprof extension
+      - "8888:8888" # Prometheus metrics exposed by collector
+      - "8889:8889" # Prometheus exporter metrics
+      - "13133:13133" # health_check extension
+      - "9411" # Zipkin receiver
+      - "55670:55679" # zpages extension
+      - "4319:4319" #OTLP gRPC receiver
+      - "4320:4320" #OTLP HTTP receiver
+    depends_on:
+      - jaeger
+      # - zipkin
+  # otel-collector-agent
+  otel-collector-agent:
+    image: otel/opentelemetry-collector # :latest?
+    volumes: 
+      # .yml file path: ./config/otel-collector-agent-config.yml:/etc/otel-collector-agent-config.yml
+      - ./config/otel-collector-agent-config.yml:/etc/otel-collector-agent-config.yml
+    command: ["--config=/etc/otel-collector-agent-config.yml"] # specifying configuration
+    ports:
+      - "4317:4317"
+      - "4318:4318" # OTLP HTTP receiver
+

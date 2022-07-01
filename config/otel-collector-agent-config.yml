@@ -1,0 +1,61 @@
+# https://opentelemetry.io/docs/collector/configuration/
+receivers:
+  # -- Data sources: traces, metrics, logs
+  otlp:
+    protocols:
+      grpc: 
+        endpoint: 0.0.0.0:4317 # default OTLP/gRPC on port 4317
+      http:
+        endpoint: 0.0.0.0:4318 # default OTLP/HTTP on port 4318
+
+# https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor#recommended-processors
+processors:
+  batch:
+    timeout: 1s
+  # --- resource processor KIV
+  resource:
+    attributes:
+      - key: "component.name1"
+        value: "agent"
+        action: insert
+
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/README.md
+exporters:
+  otlp:
+    endpoint: "otel-collector-gateway:4319" # export to gRPC endpoint
+    insecure: true
+  logging:
+    logLevel: info # default: info (debug|info|warn|error)
+    sampling_initial: 10 # default 5
+    sampling_thereafter: 500 # default
+
+# available primarily for tasks that do not involve processing telemetry data
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/service-extensions.md
+extensions:
+  health_check:
+    endpoint: :13133
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/pprofextension/README.md
+  pprof:
+    endpoint: :1777
+  zpages:
+    endpoint: :55679
+
+# configure what components are enabled in the Collector based on the configuration
+# found in the receivers, processors, exporters, and extensions sections
+# If a component is configured but not defined here, then it is not enabled
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines: # traces, metrics, logs
+  # same receiver, processor, exporter and/or pipeline can be defined more than once
+    traces:
+      receivers: [otlp] 
+      processors: [batch, resource] 
+      exporters: [otlp] # add logging to debug
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp] # logging to debug
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [logging]

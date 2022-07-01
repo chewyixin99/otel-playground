@@ -1,0 +1,107 @@
+# https://opentelemetry.io/docs/collector/configuration/
+
+# receivers can be push/pull based, is how data gets into the Collector
+# one or more receivers must be configured, default: no receivers are configured
+receivers:
+  # -- Data sources: traces, metrics, logs
+  otlp:
+    protocols:
+    # use 19/20 because collector-agent listening to 17/18
+      grpc: 
+        endpoint: 0.0.0.0:4319 # default OTLP/gRPC on port 4317
+      http:
+        endpoint: 0.0.0.0:4320 # default OTLP/HTTP on port 4318
+  # -- Data source: traces
+  zipkin: # if export to zipkin
+    endpoint: 0.0.0.0:9411
+  # -- Data source: traces
+  prometheus:
+    config:
+      scrape_configs:
+      # can have multiple job_name
+      - job_name: "otel-collector"
+        scrape_interval: 10s # to config
+        static_configs:
+        - targets: ["0.0.0.0:8888"] # Prometheus metrics exposed by collector
+
+# processors are run on data between being received and being exported (optional)
+# https://github.com/open-telemetry/opentelemetry-collector/tree/main/processor#recommended-processors
+processors:
+  # -- Data sources: traces, metrics, logs
+  batch/traces:
+    timeout: 1s
+  batch/metrics:
+    timeout: 60s
+  batch/logs:
+    timeout: 60s
+  # --- resource processor KIV
+  resource:
+    attributes:
+      - key: "test.key"
+        value: "collector"
+        action: insert
+
+# push or pull based, how data is sent to one or more backend/destinations
+# configuring an exporter does not enable it. They are enabled via 'pipelines'
+# within the 'service' section
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/README.md
+exporters:
+  # Elastic Observability
+  otlp/elastic:
+    endpoint: "${ELASTIC_APM_SERVER_ENDPOINT}"
+    headers:
+      Authorization: "Bearer ${ELASTIC_APM_SERVER_TOKEN}"
+  # -- Data sources: traces
+  jaeger:
+    endpoint: jaeger:14250 # from docker-compose
+    # https://github.com/open-telemetry/opentelemetry-collector/blob/main/config/configtls/README.md
+    # tls:
+    #   cert_file: cert.pem
+    #   key_file: cert-key.pem
+    insecure: true
+  # -- Data sources: metrics
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/exporter/prometheusexporter
+  prometheus:
+    endpoint: "0.0.0.0:8889" # Prometheus exporter metrics
+    namespace: prom_default
+    send_timestamps: true
+    metric_expiration: 5m # default 5m
+    # const_labels:
+    #   label1: value1
+  # -- Data sources: traces, metrics, logs - local exporter
+  # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/loggingexporter/README.md
+  logging:
+    logLevel: info # default: info (debug|info|warn|error)
+    sampling_initial: 10 # default 5
+    sampling_thereafter: 500 # default
+
+# available primarily for tasks that do not involve processing telemetry data
+# https://github.com/open-telemetry/opentelemetry-collector/blob/main/docs/service-extensions.md
+extensions:
+  health_check:
+    endpoint: :13133
+  # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/extension/pprofextension/README.md
+  pprof:
+    endpoint: :1777
+  zpages:
+    endpoint: :55679
+
+# configure what components are enabled in the Collector based on the configuration
+# found in the receivers, processors, exporters, and extensions sections
+# If a component is configured but not defined here, then it is not enabled
+service:
+  extensions: [health_check, pprof, zpages]
+  pipelines: # traces, metrics, logs
+  # same receiver, processor, exporter and/or pipeline can be defined more than once
+    traces:
+      receivers: [otlp]
+      processors: [batch/traces, resource] 
+      exporters: [jaeger, logging, otlp/elastic] # otlp/elastic, logging to debug
+    metrics:
+      receivers: [otlp, prometheus]
+      processors: [batch/metrics]
+      exporters: [prometheus, logging, otlp/elastic] # otlp/elastic, logging to debug
+    logs:
+      receivers: [otlp]
+      processors: [batch/logs]
+      exporters: [logging, otlp/elastic] # otlp/elastic

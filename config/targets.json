@@ -1,0 +1,18 @@
+[
+    {
+        "labels": {
+            "job": "data"
+        },
+        "targets": [
+            "localhost:8080"
+        ]
+    },
+    {
+        "labels": {
+            "job": "user"
+        },
+        "targets": [
+            "localhost:8090"
+        ]
+    }
+]
