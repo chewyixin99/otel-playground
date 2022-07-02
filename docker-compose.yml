@@ -19,8 +19,8 @@ services:
   prometheus:
     image: prom/prometheus
     volumes:
-      # .yml file example: ./config/prometheus.yml:/etc/config/prometheus.yml
       - ./config/prometheus.yml:/etc/config/prometheus.yml
+    command: ["--config.file=/etc/config/prometheus.yml"]
     ports:
       - 9090:9090
   # otel-collector-gateway

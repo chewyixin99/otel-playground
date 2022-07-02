@@ -66,8 +66,8 @@ exporters:
     namespace: prom_default
     send_timestamps: true
     metric_expiration: 5m # default 5m
-    # const_labels:
-    #   label1: value1
+    const_labels:
+      label1: value1
   # -- Data sources: traces, metrics, logs - local exporter
   # https://github.com/open-telemetry/opentelemetry-collector/blob/main/exporter/loggingexporter/README.md
   logging:
@@ -96,12 +96,15 @@ service:
     traces:
       receivers: [otlp]
       processors: [batch/traces, resource] 
-      exporters: [jaeger, logging, otlp/elastic] # otlp/elastic, logging to debug
+      # exporters: [jaeger, logging, otlp/elastic] # otlp/elastic, logging to debug
+      exporters: [jaeger, logging] # otlp/elastic, logging to debug
     metrics:
       receivers: [otlp, prometheus]
       processors: [batch/metrics]
-      exporters: [prometheus, logging, otlp/elastic] # otlp/elastic, logging to debug
+      exporters: [prometheus, logging] # otlp/elastic, logging to debug
+      # exporters: [prometheus, logging, otlp/elastic] # otlp/elastic, logging to debug
     logs:
       receivers: [otlp]
       processors: [batch/logs]
-      exporters: [logging, otlp/elastic] # otlp/elastic
+      exporters: [logging] # otlp/elastic
+      # exporters: [logging, otlp/elastic] # otlp/elastic
