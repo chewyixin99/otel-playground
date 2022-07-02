@@ -1,7 +1,7 @@
 # To start app
 - npm i
-- node run items
-- node run user
+- npm run items
+- npm run user
 - docker-compose up
 
 ## the above command spins up
