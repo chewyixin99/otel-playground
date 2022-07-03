@@ -4,11 +4,13 @@
 - npm run user
 - docker-compose up
 
-## the above command spins up
+## docker-compose command spins up
     - otel-collector-agent
     - otel-collector-gateway
     - prometheus
     - jaeger
+    - elasticsearch
+    - kibana
 
 ## UI Endpoints:
 - items-service: :8080/data
