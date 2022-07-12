@@ -47,7 +47,7 @@ services:
       # - zipkin
   # otel-collector-agent
   otel-collector-agent:
-    image: otel/opentelemetry-collector # :latest?
+    image: otel/opentelemetry-collector
     volumes: 
       # .yml file path: ./config/otel-collector-agent-config.yml:/etc/otel-collector-agent-config.yml
       - ./config/otel-collector-agent-config.yml:/etc/otel-collector-agent-config.yml
@@ -56,21 +56,22 @@ services:
       - "4317:4317"
       - "4318:4318" # OTLP HTTP receiver
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.11.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.5
     container_name: elasticsearch
     environment:
       - bootstrap.memory_lock=true
       - cluster.name=docker-cluster
       - cluster.routing.allocation.disk.threshold_enabled=false
       - discovery.type=single-node
+      # - xpack.security.enabled=true
     ports:
       - 9200:9200
   kibana:
-    image: docker.elastic.co/kibana/kibana:7.11.0
+    image: docker.elastic.co/kibana/kibana:7.17.5
     container_name: kibana
     environment:
-      ELASTICSESRCH_HOSTS: http://elasticsearch:9200
-      ELASTICSESRCH_URL: http://elasticsearch:9200
+      ELAST_HOSTS: http://elasticsearch:9200
+      ELAST_URL: http://elasticsearch:9200
     depends_on:
       - elasticsearch
     ports:
