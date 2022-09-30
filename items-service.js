@@ -15,7 +15,7 @@ app.use((req, res, next) => {
 
 app.get("/data", async(req, res) => {
     try {
-        if (req.query['fail']) 
+        if (req.query['fail']) {
             throw new Error("Request failed")
         }
         const user = await axios.get("http://localhost:8090/user");
